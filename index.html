@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+	<title>Aprenem geografia a través del futbol</title>
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ==" crossorigin="" />
+	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet-src.js" integrity="sha512-WXoSHqw/t26DszhdMhOXOkI7qCiv5QWXhH9R7CgvgZMHz1ImlkVQ3uNsiQKu5wwbbxtPzFXd1hK4tzno2VqhpA==" crossorigin=""></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="screen.css" />
+
+	<link rel="stylesheet" href="dist/MarkerCluster.css" />
+	<link rel="stylesheet" href="dist/MarkerCluster.Default.css" />
+	<script
+  src="https://code.jquery.com/jquery-2.2.4.min.js"
+  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+  crossorigin="anonymous"></script>
+</head>
+<body>
+	<h2>Apr&egrave;n geografia mitjan&ccedil;ant els equips de futbol de 1a divisi&oacute;</h2>
+	<h3>..:: Arrossega l'escut de l'equip on creguis que està el seu camp al mapa. Si encertes et sortirà una <span class="green">V</span> a l'escut, sinó una <span class="red">X</span>. Si cal pots fer un petit zoom per acabar d'ajustar a la posició exacta</h3>
+	<p class="resultats">Encerts: 0/2</p>
+	<div id="map"></div>
+	
+	<script type="text/javascript">
+		$ = jQuery;
+		let R = 6378137;
+		function style(feature) {
+			return {
+				weight: 2,
+				color: '#666',
+				dashArray: '3',
+				fillOpacity: 0.2
+			};
+		}
+
+		$(document).ready(function() {	
+			
+			var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 7,
+					minZoom: 6,
+					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+				}),
+				latlng = L.latLng(40.5, -2.44);
+
+			var map = L.map('map', {center: latlng, zoom: 6, layers: [tiles]});
+
+			var LeafIcon = L.Icon.extend({
+			    options: {
+			       iconSize:     [30, 41],
+			       iconAnchor:   [22, 94],
+			       shadowAnchor: [4, 62],
+			       popupAnchor:  [-3, -76]
+			    }
+			});
+			//map.on('click', onMapClick);
+
+			
+			function createMarker(L, iconImg, num, col) {
+			  const mapBounds = map.getBounds();
+
+			  const x 			 = mapBounds.getSouthEast();
+			  const p 			 = map.latLngToContainerPoint(x);
+			  const p_WithOffset = p.subtract(L.point(col, num*50));
+			  const x_WithOffset = map.containerPointToLatLng(p_WithOffset);
+
+			  var icon = new LeafIcon({
+			    iconUrl: 'png/'+iconImg+'.png',
+			 });
+			  marker = new L.marker(x_WithOffset, {
+			    icon: icon,
+			    valor: iconImg,
+			    draggable: true,
+			  });
+
+			  marker.addTo(map);
+			  marker.on('dragend', function(event) {
+			  	let equip  = event.target.options.valor;
+			  	var latlng = event.target.getLatLng();
+			  	let valueToDrag = getLatLngMarkers(equip);
+			  	let distance = getDistanceBetweenPoints(valueToDrag.getLatLng().lat, valueToDrag.getLatLng().lng, latlng.lat, latlng.lng);
+			  	var srcEscudo  		      = event.target._icon.src;
+			  	var escudo        		  =  checkEscudo(srcEscudo)
+			  	let stringOkOrNot 		  = (distance <= 100) ? 'ok' : 'bad';
+			  	let okOrNot               = (stringOkOrNot === 'ok') ? true : false;
+				window.checkequips2[equip] = (okOrNot) ? 1 : 0;				
+			  	setResultats();
+			  	newTarget = escudo+'-'+stringOkOrNot+'.png';
+			  	
+			  	var newIcon = new LeafIcon({
+				    iconUrl: newTarget,				    
+				});				
+			  	event.target.setIcon(newIcon);			  	
+			  });
+			  //map.panTo(new L.LatLng(position.lat, position.lng));
+			}
+			
+			function checkEscudo(escudo) {
+				escudo = escudo.substr(0,escudo.length-4);
+				if (escudo.indexOf('bad') > 1) {
+			  		escudo = escudo.substr(0,escudo.length-4);
+			  	} else if (escudo.indexOf('ok') > 1) {
+			  		escudo = escudo.substr(0,escudo.length-3);
+			  	} 
+			  	return escudo;
+			}
+
+			function getLatLngMarkers(value) {
+				var latlng = {};
+				switch(value) {
+					case 'espanyol':
+					    latlng['lat'] = parseFloat('41.3479775');
+						latlng['lng'] = parseFloat('2.0725766,17');
+						break;
+					case 'barca':
+						latlng['lat'] = parseFloat('41.380896');
+						latlng['lng'] = parseFloat('2.1228198');
+						break;
+					case 'rayo':
+					case 'madrid':
+					case 'atletico':
+						latlng['lat'] = parseFloat('40.4530387');
+						latlng['lng'] = parseFloat('-3.6905224,17');
+						break;
+					case 'getafe':
+						latlng['lat'] = parseFloat('40.3257267');
+						latlng['lng'] = parseFloat('-3.7171286,17');
+						break;
+					case 'celta':
+						latlng['lat'] = parseFloat('42.2121595');
+						latlng['lng'] = parseFloat('-8.7425751,17');
+						break;	
+					case 'betis':
+					case 'sevilla':
+						latlng['lat'] = parseFloat('37.3840655');
+						latlng['lng'] = parseFloat('-5.9728789,1');
+						break;
+					case 'alaves':
+					    latlng['lat'] = parseFloat('42.8370951');
+						latlng['lng'] = parseFloat('-2.6904097,17');
+						break;
+					case 'realsociedad':
+					    latlng['lat'] = parseFloat('43.3014057');
+						latlng['lng'] = parseFloat('-1.9757346,17');
+						break;
+					case 'athletic':
+						latlng['lat'] = parseFloat('43.2641706');
+						latlng['lng'] = parseFloat('-2.9515303,17');
+						break;
+					case 'valencia':
+					    latlng['lat'] = parseFloat('39.48191');
+						latlng['lng'] = parseFloat('-0.386331,15');
+						break;
+					case 'villareal':
+						latlng['lat'] = parseFloat('39.9438858');
+						latlng['lng'] = parseFloat('-0.1053268,17');
+						break;
+					case 'elche':
+						latlng['lat'] = parseFloat('38.2671385');
+						latlng['lng'] = parseFloat('-0.6649998,17');
+						break;
+					case 'osasuna':
+					    latlng['lat'] = parseFloat('42.7964103');
+						latlng['lng'] = parseFloat('-1.6395218,17');
+						break;
+					case 'granada':
+					    latlng['lat'] = parseFloat('37.1528761');
+						latlng['lng'] = parseFloat('-3.5984071,17');
+						break;
+					case 'levante':
+					    latlng['lat'] = parseFloat('39.4946909');
+						latlng['lng'] = parseFloat('-0.3659975');
+						break;
+					case 'cadiz':
+					    latlng['lat'] = parseFloat('36.5026053');
+						latlng['lng'] = parseFloat('-6.2751172,17');
+						break;
+					case 'mallorca':
+					    latlng['lat'] = parseFloat('39.5899561');
+						latlng['lng'] = parseFloat('2.6278613,17');
+						break;
+					default:
+						break;
+				}
+				let returnLatlng = new L.Marker(latlng);
+				return returnLatlng;
+			}
+
+			function getDistanceBetweenPoints(lat1, lng1, lat2, lng2){
+		    // The radius of the planet earth in meters
+		    let R = 6378137;
+		    let dLat = degreesToRadians(lat2 - lat1);
+		    let dLong = degreesToRadians(lng2 - lng1);
+		    let a = Math.sin(dLat / 2)
+		            *
+		            Math.sin(dLat / 2) 
+		            +
+		            Math.cos(degreesToRadians(lat1)) 
+		            * 
+		            Math.cos(degreesToRadians(lat1)) 
+		            *
+		            Math.sin(dLong / 2) 
+		            * 
+		            Math.sin(dLong / 2);
+
+		    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		    let distance = (R * c)/1000;
+		    return distance;
+		}
+		function degreesToRadians(degrees){
+		    return degrees * Math.PI / 180;
+		}
+		window.checkequips = ['barca','atletico','betis','rayo','espanyol','alaves','cadiz','madrid','getafe','sevilla','celta','athletic','elche','realsociedad','valencia','levante','osasuna','mallorca','villareal','granada'];
+		window.checkequips2 = {};
+		var contador = contador2 = 0;
+		$.each(window.checkequips, function(index, team) {
+			window.checkequips2[team]  = 0;
+			if (contador < 10) {
+			    createMarker(L,team,contador,20);
+			} else {
+			    createMarker(L,team,contador2,70);
+			    contador2++;
+			}
+			
+			contador++;
+		});
+
+		window.numequips = contador;
+		setResultats();
+		
+		function setResultats() {
+			let suma = 0;
+			let encertsTxt = '';
+			$.each(window.checkequips2, function(index, value) {
+				if (value === 1) {
+					suma++;
+					encertsTxt += ' <img class="imagescut" src="png/'+index+'-ok.png">';
+				} else {
+				    encertsTxt +=  ' <img class="imagescut" src="png/'+index+'-bad.png">';
+				}
+			});
+			$('.resultats').html('Encerts: '+suma+'/'+window.numequips+' '+encertsTxt);
+		}		
+	});
+	</script>
+<style>
+	#map {
+		width: 100%;
+	}
+	p, h2, h3 {
+		font-family: sans-serif;
+	}
+	.green {
+		color:  green;
+		font-size: 20px !important;
+	}
+	.red {
+		color:  red;
+		font-size: 20px !important;
+	}
+	.resultats {
+		font-size:  30px;
+	}
+	.imagescut {
+	    width: 30px;
+	    height: 40px;
+	}
+</style>
+</body>
+</html>
